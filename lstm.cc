@@ -32,7 +32,7 @@ class IntelLstmOp : public OpKernel {
          const Tensor* input_tensor = &context->input(0);
          auto input_flat = input_tensor->flat<float>();
          auto x = input_flat.data();
-         printf( " run to %s on line %d\n " ,__FILE__, __LINE__);
+         //printf( " run to %s on line %d\n " ,__FILE__, __LINE__);
          
          //w_x
          const Tensor* w_x_tensor = &context->input(1);
@@ -64,7 +64,6 @@ class IntelLstmOp : public OpKernel {
          //auto return_sequences_flat = return_sequences_tensor->flat<bool>();
          //auto return_sequences = return_sequences_flat.data();
 
-         printf( " run to %s on line %d\n " ,__FILE__, __LINE__);
          int max_len = 128;//max timestep
          int batch_size = input_tensor->shape().dim_size(2);
          printf("batch_size=%d\n", batch_size);
@@ -83,7 +82,6 @@ class IntelLstmOp : public OpKernel {
          auto output_flat = output_tensor->flat<float>();
          auto y = output_flat.data();
 
-         printf( " run to %s on line %d\n " ,__FILE__, __LINE__);
          //temp buf
          const float** A = (const float**)mkl_malloc(4 * max_len * sizeof (float*), 64);
          const float** B = (const float**)mkl_malloc(4 * max_len * sizeof (float*), 64);
@@ -145,7 +143,6 @@ class IntelLstmOp : public OpKernel {
                  } 
              } 
          }
-         printf( " run to %s on line %d\n " ,__FILE__, __LINE__);
          size_per_grp[0] = 4 * time_step;
      
          if (NULL == A || NULL == B || NULL == C || NULL == x_temp || NULL == f_t || NULL == i_t || NULL == c_wave_t || NULL == o_t || NULL == c_t) {
@@ -241,7 +238,6 @@ class IntelLstmOp : public OpKernel {
              B[2] = B[0];
              B[3] = B[0];
          }
-         printf( " run to %s on line %d\n " ,__FILE__, __LINE__);
          mkl_free(A);
          mkl_free(B);
          mkl_free(C);

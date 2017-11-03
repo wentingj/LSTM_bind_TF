@@ -123,31 +123,38 @@ print("--- %i samples in %s seconds (%f samples/s, %.7f s/sample) ---" % (forwar
 
 kernel = (session.run((tf_variables.trainable_variables()[0])))
 bias = (session.run((tf_variables.trainable_variables()[1])))
-print("xinput=", xinput)
-print("xinput_intel=", xinput_intel)
-print("kernel=", kernel)
-print("bias=", bias)
-print("output_h=", session.run(output, feed_dict=get_feed_dict(xinput)))
 
 
 #intelLSTM
-print("---intelLSTM---")
+print("\n------------intelLSTM------------")
 lstm_module = tf.load_op_library('/home/wentingj/tf_bind_rnn/lstm.so')
 w_x = tf.transpose(tf.slice(tf_variables.trainable_variables()[0], [0, 0], [input_size, 4*hidden_size]), perm=[1, 0])
-print("w_x=", session.run(w_x))
-w_h = tf.transpose(tf.slice(tf_variables.trainable_variables()[0], [input_size, 0], [-1, 4*hidden_size]), perm=[1, 0])
-print("w_h=", session.run(w_h))
-b = tf_variables.trainable_variables()[1]
-print("b=", session.run(b))
-h_0 = tf.transpose(init_state[0], perm=[1, 0])
-print("h_0=", session.run(h_0))
-c_0 = tf.transpose(init_state[1], perm=[1, 0])
-print("c_0=", session.run(c_0))
-with tf.Session(''):
-  session.run(tf.global_variables_initializer())
-  output_intel = lstm_module.intel_lstm(xinput_intel, session.run(w_x), session.run(w_h), session.run(b), session.run(h_0), session.run(c_0)).eval()
-print("output_h=", output_intel)
+w_ix = tf.slice(w_x, [0,0], [hidden_size,input_size])
+w_cx = tf.slice(w_x, [hidden_size,0], [hidden_size,input_size])
+w_fx = tf.slice(w_x, [hidden_size*2,0], [hidden_size,input_size])
+w_ox = tf.slice(w_x, [hidden_size*3,0], [hidden_size,input_size])
+w_x_intel = tf.concat([w_fx, w_ix, w_cx, w_ox], 0)
 
+w_h = tf.transpose(tf.slice(tf_variables.trainable_variables()[0], [input_size, 0], [hidden_size, 4*hidden_size]), perm=[1, 0])
+w_ih = tf.slice(w_h, [0,0], [hidden_size, hidden_size])
+w_ch = tf.slice(w_h, [hidden_size,0], [hidden_size,hidden_size])
+w_fh = tf.slice(w_h, [hidden_size*2,0], [hidden_size,hidden_size])
+w_oh = tf.slice(w_h, [hidden_size*3,0], [hidden_size,hidden_size])
+w_h_intel = tf.concat([w_fh, w_ih, w_ch, w_oh], 0)
+
+b = tf_variables.trainable_variables()[1]
+b_i = tf.slice(b, [0], [hidden_size])
+b_c = tf.slice(b, [hidden_size], [hidden_size])
+b_f = tf.slice(b, [hidden_size*2], [hidden_size])
+b_o = tf.slice(b, [hidden_size*3], [hidden_size])
+b_intel = tf.concat([b_f, b_i, b_c, b_o], 0)
+
+h_0 = tf.transpose(init_state[0], perm=[1, 0])
+c_0 = tf.transpose(init_state[1], perm=[1, 0])
+output_intel = lstm_module.intel_lstm(xinput_intel, (w_x_intel), (w_h_intel), (b_intel), (h_0), (c_0))
+
+#print("diff=", session.run((tf.transpose(output_intel, perm=[0, 2, 1]) - output[-1])/output[-1], feed_dict=get_feed_dict(xinput)))
+print("diff=", session.run(tf.transpose(output_intel, perm=[0, 2, 1]) - output[-1], feed_dict=get_feed_dict(xinput)))
 #start = time.time()
 ##for i in xrange(0, n_batch):
 #for i in range(0, n_batch):
